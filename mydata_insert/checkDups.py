@@ -73,12 +73,26 @@ def myInsertQuery(hashed, filename, fileloc):
                     ) LIMIT 1""" % (hashed, filename, fileloc, hashed)
     return queryStr
 
+def checkDupe(hashToFileLoc, hashed, filename, fileloc):
+    if hashed in hashToFileLoc:
+        print("-> Dupe: ")
+        print("-> file name = ", filename)
+        print("-> file loc = ", fileloc)
+        print("-> dupe loc = ", hashToFileLoc[hashed])
+        print(" ")
+        return True
+    else:
+        hashToFileLoc[hashed] = fileloc
+        return False
+    return False
+
 def registerFileName(dir, pattern):
-    connection = connectMysql()
+    # connection = connectMysql()
 
     ###################################################
 
-    filecount = 0
+    hashToFileLoc = {}
+    dupecount = 0
     cwd = os.getcwd()
     for dirName, _, fileList in os.walk(cwd):
         # print('Found directory: %s' % dirName)
@@ -87,30 +101,16 @@ def registerFileName(dir, pattern):
                 if fname.endswith(FILE_FORMAT_TARGET):
                     filename = fname.split(FILE_FORMAT_TARGET)
                     realname = filename[0].split("(1)")
-                    filecount += 1
                     name = repr(realname[0]+ FILE_FORMAT_TARGET)
                     path = repr(dirName)
-                    print("processing file : {} ({})".format(name, path))
                     hashed = myHash(name)
-                    executor(connection, hashed, name, path)
-                    print(" ")
+                    if checkDupe(hashToFileLoc, hashed, name, path) == True:
+                        dupecount += 1
 
-    # for pathAndFilename in glob.iglob(os.path.join(os.getcwd(), pattern)):
-    #     filename, ext = os.path.splitext(os.path.basename(pathAndFilename))
-    #     realname = filename.split("(1)")
-    #     filecount += 1
-    #     name = repr(realname[0])
-    #     path = repr(os.getcwd())
-    #     print("processing file ({}) : {} ({})".format(ext, name, path))
-    #     # executor(connection, name, path)
-    #     print(" ")
+    # if(connection.is_connected()):
+    #     connection.close()
 
-    ###################################################
-
-    if(connection.is_connected()):
-        connection.close()
-
-    print("***************** FILE COUNT :", filecount)
+    print("***************** DUPE COUNT :", dupecount)
 
 if __name__ == '__main__':
     registerFileName(r'./', FILE_FORMAT_PATTERN)
